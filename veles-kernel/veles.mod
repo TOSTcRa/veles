@@ -1,1 +1,2 @@
-./veles.o
+./module.o
+./helpers.o

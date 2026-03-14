@@ -13,7 +13,9 @@ module! {
 }
 
 #[repr(C)]
-struct linux_binprm {}
+struct linux_binprm {
+    _opaque: u8,
+}
 
 #[repr(C)]
 struct linux_binfmt {
@@ -26,11 +28,19 @@ extern "C" {
     fn __register_binfmt(fmt: *mut linux_binfmt, insert: c_int);
 
     fn unregister_binfmt(fmt: *mut linux_binfmt);
+
+    fn get_buf(bprm: *mut linux_binprm) -> *const u8;
 }
 
-unsafe extern "C" fn load_pe_binary(_bprm: *mut linux_binprm) -> c_int {
+unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
     pr_info!("veles was trying to launch this thing\n");
+    unsafe {
+        let buf = get_buf(bprm);
 
+        if *buf == 0x4D && *buf.add(1) == 0x5A {
+            pr_info!("PE detected\n")
+        }
+    }
     -1
 }
 
