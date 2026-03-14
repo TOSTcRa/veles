@@ -12,11 +12,41 @@ module! {
     license: "GPL",
 }
 
+#[repr(C)]
+struct linux_binprm {}
+
+#[repr(C)]
+struct linux_binfmt {
+    lh: [u8; 16],
+    module: *mut c_void,
+    load_binary: unsafe extern "C" fn(*mut linux_binprm) -> c_int,
+}
+
+extern "C" {
+    fn __register_binfmt(fmt: *mut linux_binfmt, insert: c_int);
+
+    fn unregister_binfmt(fmt: *mut linux_binfmt);
+}
+
+unsafe extern "C" fn load_pe_binary(_bprm: *mut linux_binprm) -> c_int {
+    pr_info!("veles was trying to launch this thing\n");
+
+    -1
+}
+
 struct Veles {}
+
+static mut FMT: linux_binfmt = linux_binfmt {
+    lh: [0; 16],
+    module: core::ptr::null_mut(),
+    load_binary: load_pe_binary,
+};
 
 impl kernel::Module for Veles {
     fn init(_module: &'static ThisModule) -> Result<Self> {
-        pr_info!("module was loaded");
+        unsafe {
+            __register_binfmt(&raw mut FMT as *mut linux_binfmt, 0);
+        }
 
         Ok(Veles {})
     }
@@ -24,6 +54,8 @@ impl kernel::Module for Veles {
 
 impl Drop for Veles {
     fn drop(&mut self) {
-        pr_info!("modules was unloaded\n");
+        unsafe {
+            unregister_binfmt(&raw mut FMT as *mut linux_binfmt);
+        }
     }
 }
