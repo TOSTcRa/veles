@@ -1,0 +1,1 @@
+savedcmd_veles.ko := ld.lld -r -m elf_x86_64 --compress-debug-sections=zlib -z noexecstack --build-id=sha1  -T /usr/src/linux-6.18.12-gentoo/scripts/module.lds -o veles.ko veles.o veles.mod.o .module-common.o

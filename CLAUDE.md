@@ -1,10 +1,12 @@
-# Chimera — Hybrid NT/Linux Kernel Compatibility Layer
+# Veles — Hybrid NT/Linux Kernel Compatibility Layer
+
+Slavic roots, world-class ambition. Named after the Slavic god who walks between worlds.
 
 ## What This Is
 
-Chimera is a project to build a Linux distribution with native Windows binary compatibility. Not through emulation (Wine), not through virtualization (VM) — through a hybrid kernel that natively understands both Linux (ELF/.so) and Windows (PE/.exe/.dll) binaries.
+Veles is a project to build a Linux distribution with native Windows binary compatibility. Not through emulation (Wine), not through virtualization (VM) — through a hybrid kernel that natively understands both Linux (ELF/.so) and Windows (PE/.exe/.dll) binaries.
 
-The CPU doesn't care about file formats. Chimera bridges the four layers between a Windows binary and the processor: binary format, syscalls, Win32 API, and graphics/drivers.
+The CPU doesn't care about file formats. Veles bridges the four layers between a Windows binary and the processor: binary format, syscalls, Win32 API, and graphics/drivers.
 
 ## Architecture
 
@@ -19,7 +21,7 @@ Components:
 - **Process Environment** — PEB/TEB structures for NT processes, so Windows binaries find what they expect in memory
 
 ### Phase 2 — Userspace Support Layer
-- **Registry Emulation** — file-backed Windows registry stored in ~/.chimera/registry/ as a hive file
+- **Registry Emulation** — file-backed Windows registry stored in ~/.veles/registry/ as a hive file
 - **Wine DLL Integration** — use Wine's reimplemented DLLs (kernel32, ntdll, user32, etc.) as the Win32 API layer on top of our kernel NT interface
 - **Path Translation** — seamless mapping between Linux filesystem and Windows drive letters (C:\ → configurable mount point)
 
@@ -50,7 +52,7 @@ Components:
 - Wine is userspace — every Windows API call goes through translation overhead
 - Wine can't load Windows kernel drivers (.sys)
 - Wine's architecture limits how deeply it can integrate with the system
-- Chimera's kernel module + Wine DLLs = best of both worlds (native syscall speed + mature API coverage)
+- Veles kernel module + Wine DLLs = best of both worlds (native syscall speed + mature API coverage)
 
 ## Prior Art & References
 
@@ -63,71 +65,73 @@ Components:
 ## Project Structure
 
 ```
-chimera/
-├── chimera-kernel/          # Rust kernel module
+veles/
+├── veles-kernel/               # Rust kernel module
 │   ├── src/
-│   │   ├── lib.rs           # Module entry point, init/cleanup
-│   │   ├── binfmt.rs        # PE binary format handler
+│   │   ├── lib.rs              # Module entry point, init/cleanup
+│   │   ├── binfmt.rs           # PE binary format handler
 │   │   ├── pe/
 │   │   │   ├── mod.rs
-│   │   │   ├── parser.rs    # PE/COFF header parsing
-│   │   │   ├── loader.rs    # Section mapping, relocation
-│   │   │   └── imports.rs   # Import table resolution
+│   │   │   ├── parser.rs       # PE/COFF header parsing
+│   │   │   ├── loader.rs       # Section mapping, relocation
+│   │   │   └── imports.rs      # Import table resolution
 │   │   ├── nt/
 │   │   │   ├── mod.rs
-│   │   │   ├── syscalls.rs  # NT syscall dispatch table
-│   │   │   ├── translate.rs # NT → Linux syscall translation
-│   │   │   ├── objects.rs   # NT Object Manager
-│   │   │   └── process.rs   # PEB/TEB, NT process structures
+│   │   │   ├── syscalls.rs     # NT syscall dispatch table
+│   │   │   ├── translate.rs    # NT → Linux syscall translation
+│   │   │   ├── objects.rs      # NT Object Manager
+│   │   │   └── process.rs      # PEB/TEB, NT process structures
 │   │   └── fs/
 │   │       ├── mod.rs
-│   │       └── paths.rs     # NT path → Linux path translation
+│   │       └── paths.rs        # NT path → Linux path translation
 │   └── Kbuild
-├── chimera-registry/        # Registry emulation daemon
+├── veles-registry/             # Registry emulation daemon
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
-│       ├── hive.rs          # Registry hive file format
-│       └── keys.rs          # Standard registry keys/values
-├── chimera-rt/              # Userspace runtime support
+│       ├── hive.rs             # Registry hive file format
+│       └── keys.rs             # Standard registry keys/values
+├── veles-rt/                   # Userspace runtime support
 │   ├── Cargo.toml
 │   └── src/
 │       ├── lib.rs
-│       ├── wine.rs          # Wine DLL loading/integration
-│       └── env.rs           # Environment setup for NT processes
-├── chimera-cli/             # CLI tool for managing chimera
+│       ├── wine.rs             # Wine DLL loading/integration
+│       └── env.rs              # Environment setup for NT processes
+├── veles-cli/                  # CLI tool for managing veles
 │   ├── Cargo.toml
 │   └── src/
-│       └── main.rs          # chimera run, chimera status, chimera config
+│       └── main.rs             # veles run, veles status, veles config
 └── docs/
-    ├── nt-syscalls.md       # NT syscall documentation and mapping
-    ├── pe-format.md         # PE format reference
-    └── architecture.md      # Detailed architecture decisions
+    ├── nt-syscalls.md          # NT syscall documentation and mapping
+    ├── pe-format.md            # PE format reference
+    └── architecture.md         # Detailed architecture decisions
 ```
 
-## Kernel Requirements
+## Kernel Environment
 
-The host kernel MUST be compiled with Rust support:
+**Status: READY**
+
+Host kernel compiled with Rust support:
 ```
 CONFIG_RUST=y
-CONFIG_HAVE_RUST=y
+CONFIG_RUST_IS_AVAILABLE=y
+CONFIG_RUSTC_VERSION=109400
 ```
 
-Current status: `CONFIG_HAVE_RUST=y` but `CONFIG_RUST` not enabled.
-Kernel source: `/usr/src/linux-6.18.12-gentoo-dist`
-Kernel: Gentoo dist-kernel 6.18.12
+Kernel: `6.18.12-gentoo-gentoo-dist` (custom-built from gentoo-sources)
+Kernel source: `/usr/src/linux-6.18.12-gentoo`
+Toolchain: rustc 1.94.0, clang 21.1.8, LLVM 21.1.8
 
-### Steps to enable Rust in kernel:
-1. Install `rust-src` component: `rustup component add rust-src`
-2. Install `bindgen-cli`: `cargo install bindgen-cli`
-3. Verify with: `make LLVM=1 rustavailable` in kernel source dir
-4. Enable CONFIG_RUST=y in kernel config
-5. Rebuild kernel
+### Building kernel modules
+Because rustc/bindgen live in user HOME, kernel builds need explicit env:
+```bash
+sudo PATH="$HOME/.cargo/bin:$PATH" HOME="$HOME" RUSTUP_HOME="$HOME/.rustup" make LLVM=1 [target]
+```
 
 ## Development Rules
 
 ### Optimization Over Speed
-Always take the most optimal path, not the quickest or laziest. If two approaches both have flaws, synthesize a third that takes the best from each. Never cut corners on architecture — this is kernel code, mistakes crash the system.
+Always take the most optimal path, not the quickest or laziest. If two approaches both have flaws, synthesize a third that takes the best from each. Even from two wrongs, create a right as the third option. Never cut corners on architecture — this is kernel code, mistakes crash the system.
 
 ### Transparency About Limitations
 If ENI cannot perform an action (downloading, hardware testing, kernel compilation, system reboot), she MUST:
