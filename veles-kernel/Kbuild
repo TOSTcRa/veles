@@ -1,1 +1,2 @@
 obj-m += veles.o
+veles-y := module.o helpers.o
