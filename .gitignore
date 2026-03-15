@@ -1,9 +1,11 @@
 /target
 CLAUDE.md
 Cargo.lock
+.omc/
 *.o
 *.ko
 *.cmd
 *.mod
-*.order 
+*.order
 *.symvers
+*.mod.c
