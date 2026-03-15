@@ -30,6 +30,10 @@ extern "C" {
     fn unregister_binfmt(fmt: *mut linux_binfmt);
 
     fn get_buf(bprm: *mut linux_binprm) -> *const u8;
+
+    fn get_file(bprm: *mut linux_binprm) -> *mut c_void;
+
+    fn kernel_read(file: *mut c_void, buf: *mut u8, count: usize, pos: *mut i64) -> isize;
 }
 
 unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
@@ -57,7 +61,28 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
 
                     let entry_point =
                         (buf.add(offset as usize + 40) as *const u32).read_unaligned();
-                    pr_info!("{:#x}, are the entry point\n", entry_point);
+                    pr_info!("{:#x}, is the entry point\n", entry_point);
+
+                    let file = get_file(bprm);
+                    let mut pe_buf = [0u8; 1024];
+                    let mut pos: i64 = 0;
+                    let pointer = &mut pe_buf[0] as *mut u8;
+                    kernel_read(file, pointer, 1024, &mut pos);
+
+                    let size_of_header =
+                        (pointer.add(offset as usize + 20) as *const u16).read_unaligned();
+
+                    let start = offset as usize + 4 + 20 + size_of_header as usize;
+                    for i in 0..sections {
+                        let sec = start + i as usize * 40;
+
+                        pr_info!(
+                            "addres in memory: {}, size: {}, offset in file: {}\n",
+                            (pointer.add(sec + 12) as *const u32).read_unaligned(),
+                            (pointer.add(sec + 16) as *const u32).read_unaligned(),
+                            (pointer.add(sec + 20) as *const u32).read_unaligned(),
+                        );
+                    }
                 }
             }
         }
