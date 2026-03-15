@@ -1,3 +1,9 @@
 /target
 CLAUDE.md
 Cargo.lock
+*.o
+*.ko
+*.cmd
+*.mod
+*.order 
+*.symvers
