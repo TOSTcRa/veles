@@ -38,7 +38,28 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
         let buf = get_buf(bprm);
 
         if *buf == 0x4D && *buf.add(1) == 0x5A {
-            pr_info!("PE detected\n")
+            pr_info!("PE detected\n");
+
+            let offset = (buf.add(0x3C) as *const u32).read_unaligned();
+
+            if offset < 252 {
+                if (buf.add(offset as usize) as *const u32).read_unaligned() == 0x00004550 {
+                    pr_info!("got the PE header\n");
+
+                    if (buf.add(offset as usize + 4) as *const u16).read_unaligned() == 0x8664 {
+                        pr_info!("AMD64 arch\n");
+                    } else {
+                        pr_info!("not an AMD64 arch\n");
+                    }
+
+                    let sections = (buf.add(offset as usize + 6) as *const u16).read_unaligned();
+                    pr_info!("{} sections\n", sections);
+
+                    let entry_point =
+                        (buf.add(offset as usize + 40) as *const u32).read_unaligned();
+                    pr_info!("{:#x}, are the entry point\n", entry_point);
+                }
+            }
         }
     }
     -1

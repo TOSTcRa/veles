@@ -9,3 +9,4 @@ Cargo.lock
 *.order
 *.symvers
 *.mod.c
+rust-project.json
