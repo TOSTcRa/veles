@@ -37,7 +37,6 @@ extern "C" {
 }
 
 unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
-    pr_info!("veles was trying to launch this thing\n");
     unsafe {
         let buf = get_buf(bprm);
 
