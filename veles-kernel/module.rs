@@ -114,7 +114,7 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
                             vm_mmap(core::ptr::null_mut(), mmap_addr, size as usize, 7, 0x32, 0);
 
                         if (result as isize) < 0 && (result as isize) > -4096 {
-                            return -1;
+                            return result as c_int;
                         }
 
                         pr_info!("{:#x}, is the result of vm_mmap", result);
@@ -126,7 +126,7 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
             }
         }
     }
-    -1
+    -8
 }
 
 struct Veles {}
