@@ -47,6 +47,10 @@ extern "C" {
     fn begin_new_exec(bprm: *mut linux_binprm) -> c_int;
 
     fn veles_get_to_user(file: *mut c_void, addr: c_ulong, offset: i64, size: usize) -> isize;
+
+    fn veles_start_thread(ip: c_ulong, sp: c_ulong);
+
+    fn setup_new_exec(bprm: *mut linux_binprm);
 }
 
 unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
@@ -94,6 +98,7 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
                     if ret != 0 {
                         return ret;
                     }
+                    setup_new_exec(bprm);
                     let start = offset as usize + 4 + 20 + size_of_header as usize;
                     for i in 0..sections {
                         let sec = start + i as usize * 40;
@@ -122,11 +127,17 @@ unsafe extern "C" fn load_pe_binary(bprm: *mut linux_binprm) -> c_int {
                         let file_pos = offest_in_file as i64;
                         veles_get_to_user(file, mmap_addr as c_ulong, file_pos, size as usize);
                     }
+
+                    let stack = vm_mmap(core::ptr::null_mut(), 0, 0x200000, 3, 0x22, 0);
+
+                    let top_stack = stack + 0x200000;
+
+                    veles_start_thread((image_base + entry_point as u64) as usize, top_stack);
                 }
             }
         }
     }
-    -8
+    0
 }
 
 struct Veles {}

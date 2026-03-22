@@ -1,6 +1,10 @@
+#include <asm/processor.h>
 #include <linux/binfmts.h>
 #include <linux/fs.h>
+#include <linux/ptrace.h>
+#include <linux/sched/task_stack.h>
 #include <linux/uaccess.h>
+
 char *get_buf(struct linux_binprm *bprm) { return bprm->buf; }
 
 struct file *veles_get_file(struct linux_binprm *bprm) { return bprm->file; }
@@ -23,4 +27,8 @@ ssize_t veles_get_to_user(struct file *file, unsigned long addr, loff_t pos,
   }
 
   return 0;
+}
+
+void veles_start_thread(unsigned long ip, unsigned long sp) {
+  start_thread(current_pt_regs(), ip, sp);
 }
